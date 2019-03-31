@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"time"
 
 	"github.com/endocrimes/buildkite-gcp-scaler/scaler"
 	"github.com/genuinetools/pkg/cli"
@@ -17,6 +19,8 @@ var (
 	googleCloudZone          string
 	googleCloudInstanceGroup string
 	googleCloudTemplateName  string
+
+	interval string
 
 	logger hclog.Logger
 )
@@ -42,6 +46,16 @@ func (cmd *runCommand) Run(ctx context.Context, args []string) error {
 		BuildkiteQueue:        buildkiteQueue,
 		BuildkiteToken:        buildkiteToken,
 	}
+
+	if interval != "" {
+		d, err := time.ParseDuration(interval)
+		if err != nil {
+			return fmt.Errorf("Parsing duration failed: %v", err)
+		}
+
+		cfg.PollInterval = &d
+	}
+
 	return scaler.NewAutoscaler(cfg, logger).Run(ctx)
 }
 
@@ -62,6 +76,7 @@ func main() {
 	p.FlagSet.StringVar(&googleCloudTemplateName, "instance-template", "", "Google Cloud Instance Template")
 	p.FlagSet.StringVar(&googleCloudProject, "gcp-project", "", "Google Cloud Project")
 	p.FlagSet.StringVar(&googleCloudZone, "gcp-zone", "", "Google Cloud Zone")
+	p.FlagSet.StringVar(&interval, "interval", "", "How frequently the scaler should run")
 
 	p.Before = func(ctx context.Context) error {
 		logLevel := "INFO"

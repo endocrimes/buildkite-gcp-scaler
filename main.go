@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/endocrimes/buildkite-gcp-scaler/scaler"
+	"github.com/TriggerMail/buildkite-gcp-scaler/scaler"
 	"github.com/genuinetools/pkg/cli"
 	hclog "github.com/hashicorp/go-hclog"
 )
@@ -19,8 +19,8 @@ var (
 	googleCloudZone          string
 	googleCloudInstanceGroup string
 	googleCloudTemplateName  string
-
-	interval string
+	orgSlug                  string
+	interval                 string
 
 	logger hclog.Logger
 )
@@ -45,12 +45,13 @@ func (cmd *runCommand) Run(ctx context.Context, args []string) error {
 		InstanceGroupTemplate: googleCloudTemplateName,
 		BuildkiteQueue:        buildkiteQueue,
 		BuildkiteToken:        buildkiteToken,
+		OrgSlug:               orgSlug,
 	}
 
 	if interval != "" {
 		d, err := time.ParseDuration(interval)
 		if err != nil {
-			return fmt.Errorf("Parsing duration failed: %v", err)
+			return fmt.Errorf("parsing duration failed: %v", err)
 		}
 
 		cfg.PollInterval = &d
@@ -76,6 +77,7 @@ func main() {
 	p.FlagSet.StringVar(&googleCloudTemplateName, "instance-template", "", "Google Cloud Instance Template")
 	p.FlagSet.StringVar(&googleCloudProject, "gcp-project", "", "Google Cloud Project")
 	p.FlagSet.StringVar(&googleCloudZone, "gcp-zone", "", "Google Cloud Zone")
+	p.FlagSet.StringVar(&orgSlug, "org", "", "organization slug")
 	p.FlagSet.StringVar(&interval, "interval", "", "How frequently the scaler should run")
 
 	p.Before = func(ctx context.Context) error {

@@ -4,11 +4,10 @@ go 1.16
 
 require (
 	cloud.google.com/go v0.37.2 // indirect
+	github.com/buildkite/go-buildkite v2.2.0+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
-	github.com/endocrimes/buildkite-gcp-scaler v0.0.0-20190331173125-30904365eb3a
 	github.com/genuinetools/pkg v0.0.0-20181022210355-2fcf164d37cb
 	github.com/golang/protobuf v1.3.1 // indirect
-	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-hclog v0.8.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.1 // indirect

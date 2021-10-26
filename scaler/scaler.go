@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/endocrimes/buildkite-gcp-scaler/pkg/buildkite"
-	"github.com/endocrimes/buildkite-gcp-scaler/pkg/gce"
+	"github.com/TriggerMail/buildkite-gcp-scaler/pkg/buildkite"
+	"github.com/TriggerMail/buildkite-gcp-scaler/pkg/gce"
 	hclog "github.com/hashicorp/go-hclog"
 )
 
 type Config struct {
+	OrgSlug               string
 	GCPProject            string
 	GCPZone               string
 	InstanceGroupName     string
@@ -34,7 +35,7 @@ func NewAutoscaler(cfg *Config, logger hclog.Logger) Scaler {
 	return &scaler{
 		cfg:       cfg,
 		logger:    logger.Named("scaler").With("queue", cfg.BuildkiteQueue),
-		buildkite: buildkite.NewClient(cfg.BuildkiteToken, logger),
+		buildkite: buildkite.NewClient(cfg.OrgSlug, cfg.BuildkiteToken, logger),
 		gce:       client,
 	}
 }

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -eu
+
+trap 'kill $(jobs -p); wait' SIGINT SIGTERM
+SHORT_HASH="$(echo $BUILDKITE_COMMIT|cut -c1-7)"
+
+docker:login() {
+    echo "${BUILDKITE_PLUGIN_GCR_JSON_KEY}" > account.json
+    echo "logging into gcr..."
+    docker_login_cmd=$(docker login -u _json_key --password-stdin https://us.gcr.io < account.json)
+    echo "${docker_login_cmd}"
+}
+
+ssh:agent() {
+    [[ -S /root/.ssh/ssh-agent.sock ]] || ssh-agent -a ~/.ssh/ssh-agent.sock
+    export SSH_AUTH_SOCK=/root/.ssh/ssh-agent.sock
+    ssh-add
+}
+
+ssh:agent
+docker:login
+
+EARTHLY_OS="linux"
+export EARTHLY_CONVERSION_PARALLELISM="5"
+export EARTHLY_SSH_AUTH_SOCK="/root/.ssh/ssh-agent.sock"
+export DATE=$(date '+%Y%m%d')
+
+if [ "$BUILDKITE_BRANCH" = "master" ]; then
+    earthly --ci --push -P +ci
+    # earthly --secret GITHUB_TOKEN -P +deploy
+else
+    earthly --ci --push -P +ci
+fi

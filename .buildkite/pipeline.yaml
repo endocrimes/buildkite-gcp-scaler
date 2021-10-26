@@ -1,0 +1,9 @@
+env:
+  BUILDKITE_PLUGIN_GCR_JSON_KEY: ${BUILDKITE_PLUGIN_GCR_JSON_KEY}
+  HOMEBREW_GITHUB_API_TOKEN: ${HOMEBREW_GITHUB_API_TOKEN}
+name: buildkite-gcp-scaler
+description: buildkite-gcp-scaler build pipeline
+steps:
+  - label: ":golang:"
+    key: "build"
+    command: ".buildkite/steps/build"

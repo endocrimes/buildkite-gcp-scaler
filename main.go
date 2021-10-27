@@ -21,8 +21,8 @@ var (
 	googleCloudTemplateName  string
 	orgSlug                  string
 	interval                 string
-
-	logger hclog.Logger
+	concurrency              int
+	logger                   hclog.Logger
 )
 
 type runCommand struct{}
@@ -46,6 +46,7 @@ func (cmd *runCommand) Run(ctx context.Context, args []string) error {
 		BuildkiteQueue:        buildkiteQueue,
 		BuildkiteToken:        buildkiteToken,
 		OrgSlug:               orgSlug,
+		Concurrency:           concurrency,
 	}
 
 	if interval != "" {
@@ -79,6 +80,7 @@ func main() {
 	p.FlagSet.StringVar(&googleCloudZone, "gcp-zone", "", "Google Cloud Zone")
 	p.FlagSet.StringVar(&orgSlug, "org", "", "organization slug")
 	p.FlagSet.StringVar(&interval, "interval", "", "How frequently the scaler should run")
+	p.FlagSet.IntVar(&concurrency, "concurrency", 10, "How many concurrent instances to create")
 
 	p.Before = func(ctx context.Context) error {
 		logLevel := "INFO"

@@ -2,6 +2,7 @@ package scaler
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/TriggerMail/buildkite-gcp-scaler/pkg/buildkite"
@@ -17,8 +18,8 @@ type Config struct {
 	InstanceGroupTemplate string
 	BuildkiteQueue        string
 	BuildkiteToken        string
-
-	PollInterval *time.Duration
+	Concurrency           int
+	PollInterval          *time.Duration
 }
 
 type Scaler interface {
@@ -62,10 +63,11 @@ func (s *scaler) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-
-			if err := s.run(ctx); err != nil {
+			sem := make(chan int, s.cfg.Concurrency)
+			if err := s.run(ctx, &sem); err != nil {
 				s.logger.Error("Autoscaling failed", "error", err)
 			}
+			close(sem)
 
 			if s.cfg.PollInterval != nil {
 				ticker.Reset(*s.cfg.PollInterval)
@@ -76,7 +78,7 @@ func (s *scaler) Run(ctx context.Context) error {
 	}
 }
 
-func (s *scaler) run(ctx context.Context) error {
+func (s *scaler) run(ctx context.Context, sem *chan int) error {
 	metrics, err := s.buildkite.GetAgentMetrics(ctx, s.cfg.BuildkiteQueue)
 	if err != nil {
 		return err
@@ -94,11 +96,28 @@ func (s *scaler) run(ctx context.Context) error {
 
 	required := totalInstanceRequirement - liveInstanceCount
 
+	errChan := make(chan error, 1)
+	wg := new(sync.WaitGroup)
+	wg.Add(int(required))
+
 	for i := int64(0); i < required; i++ {
-		err := s.gce.LaunchInstanceForGroup(ctx, s.cfg.GCPProject, s.cfg.GCPZone, s.cfg.InstanceGroupName, s.cfg.InstanceGroupTemplate)
-		if err != nil {
-			return err
-		}
+		go func() {
+			*sem <- 1
+			defer wg.Done()
+			if err := s.gce.LaunchInstanceForGroup(ctx, s.cfg.GCPProject, s.cfg.GCPZone, s.cfg.InstanceGroupName, s.cfg.InstanceGroupTemplate); err != nil {
+				select {
+				case errChan <- err:
+					s.logger.Error("Failed to launch instance", "error", err)
+				default:
+
+				}
+			}
+
+			<-*sem
+		}()
 	}
-	return nil
+
+	wg.Wait()
+	close(errChan)
+	return <-errChan
 }

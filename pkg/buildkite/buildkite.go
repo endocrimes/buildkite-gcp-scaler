@@ -47,10 +47,11 @@ func (c *Client) GetAgentMetrics(ctx context.Context, queue string) (*AgentMetri
 		Queue:   queue,
 	}
 
+	// iterate over all builds and count the number of scheduled and running jobs
 	for _, build := range builds {
 		for _, job := range build.Jobs {
-			c.Logger.Debug("query rules", job.AgentQueryRules)
 			for _, queryRule := range job.AgentQueryRules {
+				c.Logger.Debug("query rule: ", queryRule)
 				target := fmt.Sprintf("queue=%s", queue)
 				if queryRule == target {
 					if job.State != nil && *job.State == "scheduled" {

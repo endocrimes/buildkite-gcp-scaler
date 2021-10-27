@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	buildkiteToken string
-	buildkiteQueue string
-
+	buildkiteToken           string
+	buildkiteQueue           string
+	datadogHost              string
 	googleCloudProject       string
 	googleCloudZone          string
 	googleCloudInstanceGroup string
@@ -47,6 +47,7 @@ func (cmd *runCommand) Run(ctx context.Context, args []string) error {
 		BuildkiteToken:        buildkiteToken,
 		OrgSlug:               orgSlug,
 		Concurrency:           concurrency,
+		Datadog:               datadogHost,
 	}
 
 	if interval != "" {
@@ -80,6 +81,7 @@ func main() {
 	p.FlagSet.StringVar(&googleCloudZone, "gcp-zone", "", "Google Cloud Zone")
 	p.FlagSet.StringVar(&orgSlug, "org", "", "organization slug")
 	p.FlagSet.StringVar(&interval, "interval", "", "How frequently the scaler should run")
+	p.FlagSet.StringVar(&datadogHost, "datadog", "", "datadog host:port")
 	p.FlagSet.IntVar(&concurrency, "concurrency", 10, "How many concurrent instances to create")
 
 	p.Before = func(ctx context.Context) error {

@@ -5,12 +5,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/DataDog/datadog-go/statsd"
 	"github.com/TriggerMail/buildkite-gcp-scaler/pkg/buildkite"
 	"github.com/TriggerMail/buildkite-gcp-scaler/pkg/gce"
 	hclog "github.com/hashicorp/go-hclog"
 )
 
 type Config struct {
+	Datadog               string
 	OrgSlug               string
 	GCPProject            string
 	GCPZone               string
@@ -33,12 +35,22 @@ func NewAutoscaler(cfg *Config, logger hclog.Logger) Scaler {
 		panic(err)
 	}
 
-	return &scaler{
+	scaler := &scaler{
 		cfg:       cfg,
 		logger:    logger.Named("scaler").With("queue", cfg.BuildkiteQueue),
 		buildkite: buildkite.NewClient(cfg.OrgSlug, cfg.BuildkiteToken, logger),
 		gce:       client,
 	}
+
+	if cfg.Datadog != "" {
+		s, err := statsd.New(cfg.Datadog)
+		if err != nil {
+			return nil
+		}
+		scaler.Statsd = s
+	}
+
+	return scaler
 }
 
 type scaler struct {
@@ -54,6 +66,8 @@ type scaler struct {
 	}
 
 	logger hclog.Logger
+
+	Statsd *statsd.Client
 }
 
 func (s *scaler) Run(ctx context.Context) error {
@@ -83,9 +97,14 @@ func (s *scaler) run(ctx context.Context, sem *chan int) error {
 	if err != nil {
 		return err
 	}
+
+	s.Statsd.Gauge("buildkite-gcp-autoscaler.scheduled_jobs", float64(metrics.ScheduledJobs), []string{}, 1)
+	s.Statsd.Gauge("buildkite-gcp-autoscaler.running_jobs", float64(metrics.RunningJobs), []string{}, 1)
+
 	totalInstanceRequirement := metrics.ScheduledJobs + metrics.RunningJobs
 
 	liveInstanceCount, err := s.gce.LiveInstanceCount(ctx, s.cfg.GCPProject, s.cfg.GCPZone, s.cfg.InstanceGroupName)
+	s.Statsd.Gauge("buildkite-gcp-autoscaler.live_instance", float64(liveInstanceCount), []string{}, 1)
 	if err != nil {
 		return err
 	}

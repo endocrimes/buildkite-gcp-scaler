@@ -104,24 +104,25 @@ func (c *Client) LaunchInstanceForGroup(ctx context.Context, projectID, zone, gr
 		SourceInstanceTemplate(fmt.Sprintf("projects/%s/global/instanceTemplates/%s", projectID, templateName)).
 		Context(ctx).
 		Do()
+
 	if err != nil {
 		return fmt.Errorf("failed to create vm: %v", err)
 	}
 
-	// // Add to the group
+	// Add to the group
 
-	// req := &compute.InstanceGroupsAddInstancesRequest{
-	// 	Instances: []*compute.InstanceReference{
-	// 		{
-	// 			Instance: createOp.TargetLink,
-	// 		},
-	// 	},
-	// }
+	req := &compute.InstanceGroupsAddInstancesRequest{
+		Instances: []*compute.InstanceReference{
+			{
+				Instance: createOp.TargetLink,
+			},
+		},
+	}
 
-	// ao, err := c.gSvc.AddInstances(projectID, zone, groupName, req).Context(ctx).Do()
-	// if err != nil {
-	// 	return err
-	// }
+	ao, err := c.gSvc.AddInstances(projectID, zone, groupName, req).Context(ctx).Do()
+	if err != nil {
+		return err
+	}
 
-	return c.waitForOperationCompletion(ctx, projectID, zone, createOp)
+	return c.waitForOperationCompletion(ctx, projectID, zone, ao)
 }

@@ -2,6 +2,7 @@ package buildkite
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/buildkite/go-buildkite/buildkite"
 	hclog "github.com/hashicorp/go-hclog"
@@ -48,11 +49,17 @@ func (c *Client) GetAgentMetrics(ctx context.Context, queue string) (*AgentMetri
 
 	for _, build := range builds {
 		for _, job := range build.Jobs {
-			if job.State != nil && *job.State == "scheduled" {
-				metrics.ScheduledJobs++
-			}
-			if job.State != nil && *job.State == "running" {
-				metrics.RunningJobs++
+			c.Logger.Debug("query rules", job.AgentQueryRules)
+			for _, queryRule := range job.AgentQueryRules {
+				target := fmt.Sprintf("queue=%s", queue)
+				if queryRule == target {
+					if job.State != nil && *job.State == "scheduled" {
+						metrics.ScheduledJobs++
+					}
+					if job.State != nil && *job.State == "running" {
+						metrics.RunningJobs++
+					}
+				}
 			}
 		}
 	}

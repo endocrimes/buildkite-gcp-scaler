@@ -23,7 +23,7 @@ func NewClient(logger hclog.Logger) (*Client, error) {
 	ctx := context.Background()
 	computeService, err := compute.NewService(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to instantiate Compute Service: %v", err)
+		return nil, fmt.Errorf("failed to instantiate Compute Service: %v", err)
 	}
 
 	return &Client{
@@ -82,7 +82,7 @@ func (c *Client) waitForOperationCompletion(ctx context.Context, projectID, zone
 			return nil
 		}
 
-		return fmt.Errorf("Operation status: %s", o.Status)
+		return fmt.Errorf("operation status: %s", o.Status)
 	}
 
 	return backoff.Retry(operation, backoff.NewExponentialBackOff())
@@ -98,30 +98,30 @@ func (c *Client) LaunchInstanceForGroup(ctx context.Context, projectID, zone, gr
 		Name: iName,
 	}
 
-	c.logger.Info("Creating instance", "name", iName)
+	c.logger.Info("creating instance", "name", iName)
 
 	createOp, err := c.iSvc.Insert(projectID, zone, instance).
 		SourceInstanceTemplate(fmt.Sprintf("projects/%s/global/instanceTemplates/%s", projectID, templateName)).
 		Context(ctx).
 		Do()
 	if err != nil {
-		return fmt.Errorf("Failed to create vm: %v", err)
+		return fmt.Errorf("failed to create vm: %v", err)
 	}
 
-	// Add to the group
+	// // Add to the group
 
-	req := &compute.InstanceGroupsAddInstancesRequest{
-		Instances: []*compute.InstanceReference{
-			{
-				Instance: createOp.TargetLink,
-			},
-		},
-	}
+	// req := &compute.InstanceGroupsAddInstancesRequest{
+	// 	Instances: []*compute.InstanceReference{
+	// 		{
+	// 			Instance: createOp.TargetLink,
+	// 		},
+	// 	},
+	// }
 
-	ao, err := c.gSvc.AddInstances(projectID, zone, groupName, req).Context(ctx).Do()
-	if err != nil {
-		return err
-	}
+	// ao, err := c.gSvc.AddInstances(projectID, zone, groupName, req).Context(ctx).Do()
+	// if err != nil {
+	// 	return err
+	// }
 
-	return c.waitForOperationCompletion(ctx, projectID, zone, ao)
+	return c.waitForOperationCompletion(ctx, projectID, zone, createOp)
 }

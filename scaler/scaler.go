@@ -21,6 +21,7 @@ type Config struct {
 	BuildkiteQueue        string
 	BuildkiteToken        string
 	Concurrency           int
+	MaxRunDuration        int64
 	PollInterval          *time.Duration
 }
 
@@ -58,7 +59,7 @@ type scaler struct {
 
 	gce interface {
 		LiveInstanceCount(ctx context.Context, projectID, zone, instanceGroupName string) (int64, error)
-		LaunchInstanceForGroup(ctx context.Context, projectID, zone, groupName, templateName string) error
+		LaunchInstanceForGroup(ctx context.Context, projectID, zone, groupName, templateName string, maxRunDuration int64) error
 	}
 
 	buildkite interface {
@@ -123,7 +124,7 @@ func (s *scaler) run(ctx context.Context, sem *chan int) error {
 		go func() {
 			*sem <- 1
 			defer wg.Done()
-			if err := s.gce.LaunchInstanceForGroup(ctx, s.cfg.GCPProject, s.cfg.GCPZone, s.cfg.InstanceGroupName, s.cfg.InstanceGroupTemplate); err != nil {
+			if err := s.gce.LaunchInstanceForGroup(ctx, s.cfg.GCPProject, s.cfg.GCPZone, s.cfg.InstanceGroupName, s.cfg.InstanceGroupTemplate, s.cfg.MaxRunDuration); err != nil {
 				select {
 				case errChan <- err:
 					s.logger.Error("Failed to launch instance", "error", err)

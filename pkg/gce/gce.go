@@ -9,7 +9,7 @@ import (
 	"github.com/cenkalti/backoff"
 	hclog "github.com/hashicorp/go-hclog"
 	multierror "github.com/hashicorp/go-multierror"
-	compute "google.golang.org/api/compute/v1"
+	compute "google.golang.org/api/compute/v0.beta"
 )
 
 type Client struct {
@@ -88,14 +88,21 @@ func (c *Client) waitForOperationCompletion(ctx context.Context, projectID, zone
 	return backoff.Retry(operation, backoff.NewExponentialBackOff())
 }
 
-func (c *Client) LaunchInstanceForGroup(ctx context.Context, projectID, zone, groupName, templateName string) error {
+func (c *Client) LaunchInstanceForGroup(ctx context.Context, projectID, zone, groupName, templateName string, maxRunDuration int64) error {
 	suffix, err := randomHex(3)
 	if err != nil {
 		return err
 	}
+
 	iName := fmt.Sprintf("%s-%s", templateName, suffix)
 	instance := &compute.Instance{
 		Name: iName,
+		Scheduling: &compute.Scheduling{
+			InstanceTerminationAction: "DELETE",
+			MaxRunDuration: &compute.Duration{
+				Seconds: maxRunDuration,
+			},
+		},
 	}
 
 	c.logger.Info("creating instance", "name", iName)

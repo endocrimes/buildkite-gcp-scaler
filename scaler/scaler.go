@@ -25,18 +25,13 @@ type Config struct {
 	PollInterval          *time.Duration
 }
 
-type Scaler interface {
-	Run(context.Context) error
-}
-
-func NewAutoscaler(cfg *Config, logger hclog.Logger) Scaler {
+func NewAutoscaler(cfg *Config, logger hclog.Logger) (*Scaler, error) {
 	client, err := gce.NewClient(logger)
 	if err != nil {
-		// TODO return erros rather than panicing
-		panic(err)
+		return nil, err
 	}
 
-	scaler := &scaler{
+	scaler := Scaler{
 		cfg:       cfg,
 		logger:    logger.Named("scaler").With("queue", cfg.BuildkiteQueue),
 		buildkite: buildkite.NewClient(cfg.OrgSlug, cfg.BuildkiteToken, logger),
@@ -46,15 +41,15 @@ func NewAutoscaler(cfg *Config, logger hclog.Logger) Scaler {
 	if cfg.Datadog != "" {
 		s, err := statsd.New(cfg.Datadog)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 		scaler.Statsd = s
 	}
 
-	return scaler
+	return &scaler, nil
 }
 
-type scaler struct {
+type Scaler struct {
 	cfg *Config
 
 	gce interface {
@@ -71,7 +66,7 @@ type scaler struct {
 	Statsd *statsd.Client
 }
 
-func (s *scaler) Run(ctx context.Context) error {
+func (s *Scaler) Run(ctx context.Context) error {
 	ticker := time.NewTimer(0)
 	for {
 		select {
@@ -93,7 +88,7 @@ func (s *scaler) Run(ctx context.Context) error {
 	}
 }
 
-func (s *scaler) run(ctx context.Context, sem *chan int) error {
+func (s *Scaler) run(ctx context.Context, sem *chan int) error {
 	metrics, err := s.buildkite.GetAgentMetrics(ctx, s.cfg.BuildkiteQueue)
 	if err != nil {
 		return err

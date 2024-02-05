@@ -1,3 +1,4 @@
+VERSION 0.7
 FROM us.gcr.io/bluecore-ops/dockerfiles/golang:lint-1.17
 WORKDIR /app
 ENV GOPRIVATE=github.com/TriggerMail

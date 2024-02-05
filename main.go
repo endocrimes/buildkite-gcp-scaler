@@ -61,7 +61,12 @@ func (cmd *runCommand) Run(ctx context.Context, args []string) error {
 		cfg.PollInterval = &d
 	}
 
-	return scaler.NewAutoscaler(cfg, logger).Run(ctx)
+	s, err := scaler.NewAutoscaler(cfg, logger)
+	if err != nil {
+		return fmt.Errorf("could not initialize autoscaler: %v", err)
+	}
+
+	return s.Run(ctx)
 }
 
 func main() {

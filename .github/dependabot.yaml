@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # See documentation for possible values
+  # > "https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/configuration-options-for-dependency-updates"
+  - package-ecosystem: "gomod"
+    directory: "/" # Location of package manifests
+    schedule:
+      interval: "daily"
+      time: "08:00"
+    reviewers:
+      - TriggerMail/infra
+    open-pull-requests-limit: 10

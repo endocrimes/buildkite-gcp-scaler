@@ -108,8 +108,8 @@ func (s *Scaler) run(ctx context.Context, sem *chan int) error {
 	if liveInstanceCount >= totalInstanceRequirement {
 		return nil
 	}
-
-	required := totalInstanceRequirement - liveInstanceCount
+	// required equals total instance needs minus liveinstance count but have 4 instances ready at any time for new work
+	required := totalInstanceRequirement - liveInstanceCount + 4
 
 	errChan := make(chan error, 1)
 	wg := new(sync.WaitGroup)
